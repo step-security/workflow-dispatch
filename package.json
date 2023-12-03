@@ -1,0 +1,22 @@
+{
+  "name": "workflow-dispatch",
+  "version": "1.0.0",
+  "description": "Trigger running GitHub Actions workflows",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "ncc build src/main.ts -o dist"
+  },
+  "keywords": [
+    "github",
+    "actions"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@actions/core": "^1.10.0",
+    "@actions/github": "^5.1.1",
+    "axios": "^1.6.2",
+    "@vercel/ncc": "^0.38.1",
+    "typescript": "^5.2.2",
+    "@types/node": "^20.9.0"
+  }
+}
