@@ -12,7 +12,7 @@ jobs:
       with:
         egress-policy: audit
 
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Invoke echo 1
       uses: ./
       with:
