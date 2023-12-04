@@ -8,9 +8,17 @@ on:
         required: true
         # No default
 
+permissions:
+  contents: read
+
 jobs:
   echo:
     runs-on: ubuntu-latest
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895 # v2.6.1
+        with:
+          egress-policy: audit
+
       - name: Echo message
         run: echo '${{ inputs.message }}'
