@@ -17,6 +17,6 @@
     "axios": "^1.6.2",
     "@vercel/ncc": "^0.38.1",
     "typescript": "^5.2.2",
-    "@types/node": "^20.9.0"
+    "@types/node": "^20.11.10"
   }
 }
