@@ -1,0 +1,33 @@
+name: Build & Test
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# permissions:
+#   contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build with ncc
+        run: |
+          npm install
+          npm run build
+
+      - name: Invoke echo 1 workflow using this action
+        uses: ./
+        with:
+          workflow: Message Echo 1
+          inputs: '{"message": "blah blah"}'
+
+      - name: Invoke echo 2 workflow using this action
+        uses: ./
+        with:
+          workflow: echo-2.yaml
+

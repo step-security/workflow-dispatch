@@ -1,6 +1,4 @@
-# StepSecurity Maintained `workflow-dispatch` Action
-
-Forked from [benc-uk/workflow-dispatch](https://github.com/benc-uk/workflow-dispatch)
+# GitHub Action for Dispatching Workflows
 
 This action triggers another GitHub Actions workflow, using the `workflow_dispatch` event.  
 The workflow must be configured for this event type e.g. `on: [workflow_dispatch]`
@@ -46,7 +44,11 @@ workflow: 1218419
 
 ### `token`
 
-**Optional.** By default the standard `github.token`/`GITHUB_TOKEN` will be used and you no longer need to provide your own token here. However when using the `repo` option, you must provide a token here, create a PAT token with repo rights, and pass it here via a secret. This options is also left for backwards compatibility reasons.
+**Optional.** By default the standard `github.token`/`GITHUB_TOKEN` will be used and you no longer need to provide your own token here.
+
+**⚠️ IMPORTANT:** When using the `repo` option to call across repos, you **must** provide the token. In order to do so, create a PAT token with repo rights, and pass it here via a secret, e.g. `${{ secrets.MY_TOKEN }}`.
+
+This option is also left for backwards compatibility with older versions where this field was mandatory.
 
 ## Action Outputs
 
@@ -76,4 +78,6 @@ This Action emits a single output named `workflowId`.
     workflow: my-workflow.yaml
     repo: step-security/example
     inputs: '{ "message": "blah blah", "something": false }'
+    # Required when using the `repo` option. Either a PAT or a token generated from the GitHub app or CLI
+    token: "${{ secrets.MY_TOKEN }}"
 ```
