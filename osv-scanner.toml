@@ -1,0 +1,3 @@
+[[IgnoredVulns]]
+id = "GHSA-952p-6rrq-rcjv"
+reason = "It is a test dependency"
