@@ -39475,7 +39475,7 @@ module.exports = JSON.parse('{"application/1d-interleaved-parityfec":{"source":"
 /***/ ((module) => {
 
 "use strict";
-module.exports = JSON.parse('{"name":"workflow-dispatch","version":"1.2.3","description":"Trigger running GitHub Actions workflows","main":"dist/index.js","scripts":{"build":"ncc build src/main.ts -o dist","lint":"eslint src/"},"keywords":["github","actions"],"license":"MIT","devDependencies":{"@actions/core":"^1.10.0","@actions/github":"^6.0.0","@types/node":"^20.9.0","@typescript-eslint/eslint-plugin":"^7.2.0","@typescript-eslint/parser":"^7.2.0","@vercel/ncc":"^0.38.1","axios":"^1.8.2","eslint":"^8.57.0","typescript":"^5.4.2"}}');
+module.exports = JSON.parse('{"name":"workflow-dispatch","version":"1.2.3","description":"Trigger running GitHub Actions workflows","main":"dist/index.js","scripts":{"build":"ncc build src/main.ts -o dist","lint":"eslint src/"},"keywords":["github","actions"],"license":"MIT","devDependencies":{"@actions/core":"^1.10.0","@actions/github":"^6.0.0","@types/node":"^20.9.0","@vercel/ncc":"^0.38.1","axios":"^1.8.2","eslint":"^8.57.0","prettier":"^3.5.3","typescript":"^5.4.2","typescript-eslint":"^8.26.1"}}');
 
 /***/ })
 
