@@ -32761,16 +32761,22 @@ function run() {
             // Get octokit client for making API calls
             const octokit = github.getOctokit(token);
             // List workflows via API, and handle paginated results
-            const workflows = yield octokit.paginate(octokit.rest.actions.listRepoWorkflows.endpoint.merge({ owner, repo, ref, inputs }));
+            const workflows = yield octokit.paginate(octokit.rest.actions.listRepoWorkflows.endpoint.merge({
+                owner,
+                repo,
+                ref,
+                inputs,
+            }));
             // Debug response if ACTIONS_STEP_DEBUG is enabled
             core.debug('### START List Workflows response data');
             core.debug(JSON.stringify(workflows, null, 3));
             core.debug('### END:  List Workflows response data');
             // Locate workflow either by name, id or filename
             const foundWorkflow = workflows.find((workflow) => {
-                return workflow.name === workflowRef ||
+                return (workflow.name === workflowRef ||
                     workflow.id.toString() === workflowRef ||
-                    workflow.path.endsWith(workflowRef);
+                    workflow.path.endsWith(`/${workflowRef}`) || // Add a leading / to avoid matching workflow with same suffix
+                    workflow.path == workflowRef); // Or it stays in top level directory
             });
             if (!foundWorkflow)
                 throw new Error(`Unable to find workflow '${workflowRef}' in ${owner}/${repo} 😥`);
@@ -32779,7 +32785,7 @@ function run() {
             console.log('🚀 Calling GitHub API to dispatch workflow...');
             const dispatchResp = yield octokit.request(`POST /repos/${owner}/${repo}/actions/workflows/${foundWorkflow.id}/dispatches`, {
                 ref: ref,
-                inputs: inputs
+                inputs: inputs,
             });
             core.info(`🏆 API response status: ${dispatchResp.status}`);
             core.setOutput('workflowId', foundWorkflow.id);
