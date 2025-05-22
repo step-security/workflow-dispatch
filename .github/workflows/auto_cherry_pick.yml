@@ -8,6 +8,9 @@ on:
         required: true
         default: "main"
 
+  schedule:
+    - cron: "0 0 * * 1"
+
 permissions:
   contents: write
   pull-requests: write
@@ -16,7 +19,7 @@ permissions:
 
 jobs:
   audit-fix:
-    uses: step-security/reusable-workflows/.github/workflows/auto_cherry_pick.yaml@fix_UpStream-Changes-Cherry-Pick
+    uses: step-security/reusable-workflows/.github/workflows/auto_cherry_pick.yaml@v1
     with:
       original-owner: "benc-uk"
       repo-name: "workflow-dispatch"
