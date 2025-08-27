@@ -33872,12 +33872,13 @@ function run() {
 }
 function validateSubscription() {
     return __awaiter(this, void 0, void 0, function* () {
+        var _a;
         const API_URL = `https://agent.api.stepsecurity.io/v1/github/${process.env.GITHUB_REPOSITORY}/actions/subscription`;
         try {
             yield axios_1.default.get(API_URL, { timeout: 3000 });
         }
         catch (error) {
-            if ((0, axios_1.isAxiosError)(error) && error.response) {
+            if ((0, axios_1.isAxiosError)(error) && ((_a = error.response) === null || _a === void 0 ? void 0 : _a.status) === 403) {
                 core.error('Subscription is not valid. Reach out to support@stepsecurity.io');
                 process.exit(1);
             }
