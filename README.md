@@ -1,3 +1,5 @@
+[![StepSecurity Maintained Action](https://raw.githubusercontent.com/step-security/maintained-actions-assets/main/assets/maintained-action-banner.png)](https://docs.stepsecurity.io/actions/stepsecurity-maintained-actions)
+
 # GitHub Action for Dispatching Workflows
 
 This action triggers another GitHub Actions workflow, using the `workflow_dispatch` event.  
