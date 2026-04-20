@@ -1,5 +1,6 @@
 // ----------------------------------------------------------------------------
 // Copyright (c) Ben Coleman, 2020-2026
+// Copyright (c) 2023 StepSecurity
 // Licensed under the MIT License.
 //
 // Workflow Dispatch Action - Main task code
