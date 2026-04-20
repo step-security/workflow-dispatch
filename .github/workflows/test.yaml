@@ -1,6 +1,6 @@
 name: Workflow Tester
 
-on: 
+on:
   workflow_dispatch:
 
 jobs:
@@ -17,9 +17,11 @@ jobs:
       uses: ./
       with:
         workflow: echo-1.yaml
-        inputs: '{"message": "blah blah this is a test"}'   
+        inputs: '{"message": "blah blah this is a test"}'
     - name: Invoke echo 2
       uses: ./
       with:
         workflow: Message Echo 2
-        inputs: '{"message": "mushrooms in the morning"}'           
+        inputs: '{"message": "mushrooms in the morning"}'
+        wait-for-completion: true
+        wait-timeout-seconds: 26
