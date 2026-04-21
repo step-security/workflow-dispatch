@@ -15,6 +15,7 @@ inputs:
   ref:
     description: 'The reference can be a branch, tag, or a commit SHA'
     required: false
+    default: ${{ github.head_ref || github.ref }}
   repo:
     description: 'Repo owner & name, slash separated, only set if invoking a workflow in a different repo'
     required: false
@@ -26,6 +27,10 @@ inputs:
     description: 'Maximum time in seconds to wait for the workflow run to complete before timing out (only applies if wait-for-completion is true)'
     required: false
     default: 900
+  sync-status:
+    description: 'Whether to set the status of this action to failed if the triggered workflow run fails, or is cancelled. Only applies if wait-for-completion is true.'
+    required: false
+    default: false
 
 outputs:
   runId:

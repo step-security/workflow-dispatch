@@ -18,9 +18,9 @@ type Workflow = {
   path: string
 }
 
-//
+// =============================================================================
 // Main task function (async wrapper)
-//
+// =============================================================================
 async function run(): Promise<void> {
   core.info(`🏃 Workflow Dispatch Action v${PackageJSON.version}`)
   try {
@@ -31,7 +31,7 @@ async function run(): Promise<void> {
 
     // Optional inputs, with defaults
     const token = core.getInput('token')
-    const ref = core.getInput('ref') || github.context.ref
+    const ref = core.getInput('ref')
     const [owner, repo] = core.getInput('repo')
       ? core.getInput('repo').split('/')
       : [github.context.repo.owner, github.context.repo.repo]
@@ -40,7 +40,11 @@ async function run(): Promise<void> {
     let inputs = {}
     const inputsJson = core.getInput('inputs')
     if (inputsJson) {
-      inputs = JSON.parse(inputsJson)
+      try {
+        inputs = JSON.parse(inputsJson)
+      } catch (e) {
+        core.error(`Failed to parse 'inputs' JSON string: ${e instanceof Error ? e.message : String(e)}`)
+      }
     }
 
     // Get octokit client for making API calls
@@ -51,8 +55,6 @@ async function run(): Promise<void> {
       octokit.rest.actions.listRepoWorkflows.endpoint.merge({
         owner,
         repo,
-        ref,
-        inputs,
       }),
     )
 
@@ -73,10 +75,10 @@ async function run(): Promise<void> {
 
     if (!foundWorkflow) throw new Error(`Unable to find workflow '${workflowRef}' in ${owner}/${repo} 😥`)
 
-    console.log(`🔎 Found workflow, id: ${foundWorkflow.id}, name: ${foundWorkflow.name}, path: ${foundWorkflow.path}`)
+    core.info(`🔎 Found workflow, id: ${foundWorkflow.id}, name: ${foundWorkflow.name}, path: ${foundWorkflow.path}`)
 
     // Call workflow_dispatch API
-    console.log('🚀 Calling GitHub API to dispatch workflow...')
+    core.info('🚀 Calling GitHub API to dispatch workflow...')
     const dispatchResp = await octokit.request(
       `POST /repos/${owner}/${repo}/actions/workflows/${foundWorkflow.id}/dispatches`,
       {
@@ -91,17 +93,23 @@ async function run(): Promise<void> {
 
     // Handle wait for completion
     const waitForCompletion = core.getInput('wait-for-completion') === 'true'
+    const syncStatus = core.getInput('sync-status') === 'true'
     const timeoutSeconds = parseInt(core.getInput('wait-timeout-seconds') || '900', 10) // Default to 15 minutes
+    let runStatus = 'in_progress'
+
+    // Polling loop to check workflow run status until it completes or times out
     if (waitForCompletion) {
       core.info(`⏳ Waiting for workflow run to complete with a timeout of ${timeoutSeconds} seconds...`)
-      let runStatus = 'in_progress'
       const startTime = Date.now()
       while (runStatus === 'in_progress' || runStatus === 'queued' || runStatus === 'waiting') {
         if ((Date.now() - startTime) / 1000 > timeoutSeconds) {
-          core.warning(`⚠️ Workflow run did not complete within ${timeoutSeconds} seconds, timing out.\nNote: The workflow is still running but we have stopped waiting. You can check the run status here: ${dispatchResp.data.html_url}`)
+          core.warning(
+            `⚠️ Workflow run did not complete within ${timeoutSeconds} seconds, timing out.\nNote: The workflow is still running but we have stopped waiting. You can check the run status here: ${dispatchResp.data.html_url}`,
+          )
+          runStatus = 'timed_out'
           break
         }
-        
+
         await new Promise((resolve) => setTimeout(resolve, 5000)) // Wait for 5 seconds before polling again
 
         const { data: runData } = await octokit.request(
@@ -111,8 +119,10 @@ async function run(): Promise<void> {
         core.info(`🔄 Current run status: ${runStatus}`)
       }
 
-      if (runStatus === 'completed') {  
-        core.info('✅ Workflow run completed successfully!')
+      if (runStatus === 'completed') {
+        core.info('✅ Workflow run completed, the final status can be found in the workflow run details.')
+      } else if (runStatus === 'timed_out') {
+        core.warning(`⚠️ Workflow run did not complete within the timeout period.`)
       } else {
         core.warning(`⚠️ Workflow run completed with status: ${runStatus}`)
       }
@@ -122,6 +132,24 @@ async function run(): Promise<void> {
     core.setOutput('runUrl', dispatchResp.data.run_url)
     core.setOutput('runUrlHtml', dispatchResp.data.html_url)
     core.setOutput('workflowId', foundWorkflow.id)
+
+    // Sync the status of this action with the triggered workflow run if requested
+    if (syncStatus && waitForCompletion) {
+      // Get the final conclusion of the workflow run if we were waiting for completion
+      const { data: finalRunData } = await octokit.request(
+        `GET /repos/${owner}/${repo}/actions/runs/${dispatchResp.data.workflow_run_id}`,
+      )
+      const conclusion = finalRunData.conclusion
+
+      // Set this action to failed if the triggered workflow run failed or was cancelled
+      if (conclusion === 'failure') {
+        core.setFailed(`Workflow run failed. Check the run details here: ${dispatchResp.data.html_url}`)
+      } else if (conclusion === 'cancelled') {
+        core.setFailed(`Workflow run was cancelled. Check the run details here: ${dispatchResp.data.html_url}`)
+      } else {
+        core.info(`🎉 Workflow conclusion: ${conclusion}`)
+      }
+    }
   } catch (error) {
     const e = error as Error
 
@@ -145,43 +173,37 @@ async function validateSubscription(): Promise<void> {
 
   const upstream = 'benc-uk/workflow-dispatch'
   const action = process.env.GITHUB_ACTION_REPOSITORY
-  const docsUrl =
-    'https://docs.stepsecurity.io/actions/stepsecurity-maintained-actions'
+  const docsUrl = 'https://docs.stepsecurity.io/actions/stepsecurity-maintained-actions'
 
   core.info('')
   core.info('\u001b[1;36mStepSecurity Maintained Action\u001b[0m')
   core.info(`Secure drop-in replacement for ${upstream}`)
-  if (repoPrivate === false)
-    core.info('\u001b[32m\u2713 Free for public repositories\u001b[0m')
+  if (repoPrivate === false) core.info('\u001b[32m\u2713 Free for public repositories\u001b[0m')
   core.info(`\u001b[36mLearn more:\u001b[0m ${docsUrl}`)
   core.info('')
 
   if (repoPrivate === false) return
 
   const serverUrl = process.env.GITHUB_SERVER_URL || 'https://github.com'
-  const body: Record<string, string> = {action: action || ''}
+  const body: Record<string, string> = { action: action || '' }
   if (serverUrl !== 'https://github.com') body.ghes_server = serverUrl
   try {
     await axios.post(
       `https://agent.api.stepsecurity.io/v1/github/${process.env.GITHUB_REPOSITORY}/actions/maintained-actions-subscription`,
       body,
-      {timeout: 3000}
+      { timeout: 3000 },
     )
   } catch (error) {
     if (isAxiosError(error) && error.response?.status === 403) {
-      core.error(
-        `\u001b[1;31mThis action requires a StepSecurity subscription for private repositories.\u001b[0m`
-      )
-      core.error(
-        `\u001b[31mLearn how to enable a subscription: ${docsUrl}\u001b[0m`
-      )
+      core.error(`\u001b[1;31mThis action requires a StepSecurity subscription for private repositories.\u001b[0m`)
+      core.error(`\u001b[31mLearn how to enable a subscription: ${docsUrl}\u001b[0m`)
       process.exit(1)
     }
     core.info('Timeout or API not reachable. Continuing to next step.')
   }
 }
 
-//
+// =============================================================================
 // Call the main task run function
-//
+// =============================================================================
 run()
