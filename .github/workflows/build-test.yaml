@@ -146,7 +146,7 @@ jobs:
       - name: Dispatch echo-1 by numeric ID
         uses: ./
         with:
-          workflow: '1854247'
+          workflow: '78181717'
           inputs: '{"message": "dispatched by id"}'
           ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
 
