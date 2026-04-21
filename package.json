@@ -1,17 +1,20 @@
 {
   "name": "workflow-dispatch",
-  "version": "1.3.0",
+  "version": "1.3.1",
+  "author": "step-security",
+  "license": "MIT",
   "description": "Trigger running GitHub Actions workflows",
   "main": "dist/index.js",
   "scripts": {
-    "build": "esbuild src/main.ts --bundle --platform=node --target=node22 --outfile=dist/index.js",
-    "lint": "eslint src/"
+    "build": "esbuild src/main.ts --bundle --platform=node --target=node24 --outfile=dist/index.js",
+    "lint": "eslint src/ --ext .ts && prettier --check src/",
+    "lint-fix": "eslint src/ --fix",
+    "format": "prettier --write src/"
   },
   "keywords": [
     "github",
     "actions"
   ],
-  "license": "MIT",
   "devDependencies": {
     "@actions/core": "^3.0.0",
     "@actions/github": "^9.0.0",

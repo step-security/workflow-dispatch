@@ -39288,7 +39288,7 @@ function getOctokit(token, options, ...additionalPlugins) {
 var fs3 = __toESM(require("fs"));
 
 // package.json
-var version = "1.3.0";
+var version = "1.3.1";
 
 // src/main.ts
 async function run() {
@@ -39405,8 +39405,7 @@ async function validateSubscription() {
   info("");
   info("\x1B[1;36mStepSecurity Maintained Action\x1B[0m");
   info(`Secure drop-in replacement for ${upstream}`);
-  if (repoPrivate === false)
-    info("\x1B[32m\u2713 Free for public repositories\x1B[0m");
+  if (repoPrivate === false) info("\x1B[32m\u2713 Free for public repositories\x1B[0m");
   info(`\x1B[36mLearn more:\x1B[0m ${docsUrl}`);
   info("");
   if (repoPrivate === false) return;
@@ -39421,12 +39420,8 @@ async function validateSubscription() {
     );
   } catch (error2) {
     if (isAxiosError2(error2) && error2.response?.status === 403) {
-      error(
-        `\x1B[1;31mThis action requires a StepSecurity subscription for private repositories.\x1B[0m`
-      );
-      error(
-        `\x1B[31mLearn how to enable a subscription: ${docsUrl}\x1B[0m`
-      );
+      error(`\x1B[1;31mThis action requires a StepSecurity subscription for private repositories.\x1B[0m`);
+      error(`\x1B[31mLearn how to enable a subscription: ${docsUrl}\x1B[0m`);
       process.exit(1);
     }
     info("Timeout or API not reachable. Continuing to next step.");

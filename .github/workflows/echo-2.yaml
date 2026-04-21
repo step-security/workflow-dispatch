@@ -20,7 +20,7 @@ jobs:
         with:
           egress-policy: audit
 
-      - name: Echo message slowly with a wait
+      - name: Echo message with a wait
         run: |
-          sleep 125        
+          sleep 11
           echo '${{ inputs.message }}'
