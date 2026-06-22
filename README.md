@@ -2,7 +2,7 @@
 
 # GitHub Action for Dispatching Workflows
 
-This action triggers another GitHub Actions workflow, using the `workflow_dispatch` event.  
+This action triggers another GitHub Actions workflow, using the `workflow_dispatch` event.
 The workflow must be configured for this event type e.g. `on: [workflow_dispatch]`
 
 This allows you to chain workflows, the classic use case is have a CI build workflow, trigger a CD release/deploy workflow when it completes. Allowing you to maintain separate workflows for CI and CD, and pass data between them as required.
@@ -60,11 +60,19 @@ This option is also left for backwards compatibility with older versions where t
 
 ### `wait-for-completion`
 
-**Optional.** Set to `'true'` to wait for the triggered workflow run to complete before finishing this action. The action will poll the run status every 5 seconds. Default is `false`.
+**Optional.** Set to `'true'` to wait for the triggered workflow run to complete before finishing this action. The action will poll the run status every 5 seconds, but you can change this by setting `wait-interval-seconds`. Default is `false`.
 
 ### `wait-timeout-seconds`
 
 **Optional.** The maximum time in seconds to wait for the triggered workflow run to complete before timing out. This only applies if `wait-for-completion` is set to `true`. Default is `900` seconds (15 minutes).
+
+### `wait-interval-seconds`
+
+**Optional.** Interval in seconds between polls. This only applies if `wait-for-completion` is set to `true`. Default is `5` seconds.
+
+### `sync-status`
+
+**Optional.** Set to `'true'` to sync the status of this action with the triggered workflow run. If the triggered workflow run fails or is cancelled, this action will also be set to failed. This only applies if `wait-for-completion` is set to `true`. Default is `false`.
 
 ## Action Outputs
 
