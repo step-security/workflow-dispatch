@@ -95,6 +95,7 @@ async function run(): Promise<void> {
     const waitForCompletion = core.getInput('wait-for-completion') === 'true'
     const syncStatus = core.getInput('sync-status') === 'true'
     const timeoutSeconds = parseInt(core.getInput('wait-timeout-seconds') || '900', 10) // Default to 15 minutes
+    const waitIntervalSeconds = parseInt(core.getInput('wait-interval-seconds') || '5', 10) // Default to 5 seconds
     let runStatus = 'in_progress'
 
     // Polling loop to check workflow run status until it completes or times out
@@ -110,7 +111,7 @@ async function run(): Promise<void> {
           break
         }
 
-        await new Promise((resolve) => setTimeout(resolve, 5000)) // Wait for 5 seconds before polling again
+        await new Promise((resolve) => setTimeout(resolve, waitIntervalSeconds * 1000)) // Wait for waitIntervalSeconds before polling again
 
         const { data: runData } = await octokit.request(
           `GET /repos/${owner}/${repo}/actions/runs/${dispatchResp.data.workflow_run_id}`,
