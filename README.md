@@ -2,7 +2,7 @@
 
 # GitHub Action for Dispatching Workflows
 
-This action triggers another GitHub Actions workflow, using the `workflow_dispatch` event.  
+This action triggers another GitHub Actions workflow, using the `workflow_dispatch` event.
 The workflow must be configured for this event type e.g. `on: [workflow_dispatch]`
 
 This allows you to chain workflows, the classic use case is have a CI build workflow, trigger a CD release/deploy workflow when it completes. Allowing you to maintain separate workflows for CI and CD, and pass data between them as required.
@@ -65,6 +65,10 @@ This option is also left for backwards compatibility with older versions where t
 ### `wait-timeout-seconds`
 
 **Optional.** The maximum time in seconds to wait for the triggered workflow run to complete before timing out. This only applies if `wait-for-completion` is set to `true`. Default is `900` seconds (15 minutes).
+
+### `wait-interval-seconds`
+
+**Optional.** Interval in seconds between polls. This only applies if `wait-for-completion` is set to `true`. Default is `5` seconds.
 
 ### `sync-status`
 
