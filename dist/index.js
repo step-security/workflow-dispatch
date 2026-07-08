@@ -39794,7 +39794,7 @@ async function run() {
     if (waitForCompletion) {
       info(`\u23F3 Waiting for workflow run to complete with a timeout of ${timeoutSeconds} seconds...`);
       const startTime = Date.now();
-      while (runStatus === "in_progress" || runStatus === "queued" || runStatus === "waiting") {
+      while (runStatus === "in_progress" || runStatus === "queued" || runStatus === "waiting" || runStatus === "pending") {
         if ((Date.now() - startTime) / 1e3 > timeoutSeconds) {
           warning(
             `\u26A0\uFE0F Workflow run did not complete within ${timeoutSeconds} seconds, timing out.
