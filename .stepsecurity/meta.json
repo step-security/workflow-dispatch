@@ -1,0 +1,18 @@
+{
+   "schema_version": "1",
+   "onboarding_type": "copied",
+   "archived": false,
+   "maintained_action_name": "step-security/workflow-dispatch",
+   "upstream_full_repo_name": "benc-uk/workflow-dispatch",
+   "action_type": "node",
+   "last_release": {
+     "tag_name": "v1.3.2",
+     "created_at": "2026-06-22T05:51:03Z",
+     "published_at": "2026-06-23T16:58:53Z"
+   },
+   "sync": {
+     "ignore_presets": [
+       "defaults_v1"
+     ]
+   }
+ }
