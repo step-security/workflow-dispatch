@@ -72,7 +72,24 @@ This option is also left for backwards compatibility with older versions where t
 
 ### `sync-status`
 
-**Optional.** Set to `'true'` to sync the status of this action with the triggered workflow run. If the triggered workflow run fails or is cancelled, this action will also be set to failed. This only applies if `wait-for-completion` is set to `true`. Default is `false`.
+**Optional.** Set to `'true'` to sync the status of this action with the triggered workflow run. If the triggered workflow run does not succeed, this action will also be set to failed. This only applies if `wait-for-completion` is set to `true`. Default is `false`.
+
+### `success-conclusions`
+
+**Optional.** Comma-separated list of run conclusions that `sync-status` should treat as a pass. Anything else fails this action, as does a run that never reaches `completed`. This only applies if `sync-status` is set to `true`. Default is `success,neutral,skipped,action_required`.
+
+Set it to `success` when the triggered run is a gate and only a genuine pass should go green:
+
+```yaml
+- uses: step-security/workflow-dispatch@v1
+  with:
+    workflow: e2e.yml
+    wait-for-completion: 'true'
+    sync-status: 'true'
+    success-conclusions: success
+```
+
+Valid values are `success`, `failure`, `neutral`, `cancelled`, `skipped`, `timed_out`, `action_required`, `stale` and `startup_failure`. An unrecognised value fails the action before the workflow is dispatched.
 
 ## Action Outputs
 

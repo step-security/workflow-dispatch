@@ -35,6 +35,10 @@ inputs:
     description: 'Whether to set the status of this action to failed if the triggered workflow run fails, or is cancelled. Only applies if wait-for-completion is true.'
     required: false
     default: false
+  success-conclusions:
+    description: 'Comma-separated run conclusions that sync-status should treat as a pass. Set to "success" to fail on anything else. Only applies if sync-status is true. Valid values: success, failure, neutral, cancelled, skipped, timed_out, action_required, stale, startup_failure.'
+    required: false
+    default: 'success,neutral,skipped,action_required'
 
 outputs:
   runId:
