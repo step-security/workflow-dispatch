@@ -40787,12 +40787,32 @@ var version = "1.3.2";
 
 // src/main.ts
 var API_VERSION = "2026-03-10";
-var FAILED_CONCLUSIONS = /* @__PURE__ */ new Set(["failure", "cancelled", "timed_out", "startup_failure", "stale"]);
+var DEFAULT_SUCCESS_CONCLUSIONS = "success,neutral,skipped,action_required";
+var KNOWN_CONCLUSIONS = /* @__PURE__ */ new Set([
+  "success",
+  "failure",
+  "neutral",
+  "cancelled",
+  "skipped",
+  "timed_out",
+  "action_required",
+  "stale",
+  "startup_failure"
+]);
 async function run() {
   info(`\u{1F3C3} Workflow Dispatch Action v${version}`);
   try {
     await validateSubscription();
     const workflowRef = getInput("workflow");
+    const successConclusions = new Set(
+      (getInput("success-conclusions") || DEFAULT_SUCCESS_CONCLUSIONS).split(",").map((c) => c.trim().toLowerCase()).filter((c) => c.length > 0)
+    );
+    const unknownConclusions = [...successConclusions].filter((c) => !KNOWN_CONCLUSIONS.has(c));
+    if (unknownConclusions.length > 0) {
+      throw new Error(
+        `Invalid 'success-conclusions' value(s): ${unknownConclusions.join(", ")}. Valid values: ${[...KNOWN_CONCLUSIONS].join(", ")}`
+      );
+    }
     const token = getInput("token");
     const ref = getInput("ref");
     const [owner, repo] = getInput("repo") ? getInput("repo").split("/") : [context2.repo.owner, context2.repo.repo];
@@ -40885,16 +40905,16 @@ Note: The workflow is still running but we have stopped waiting. You can check t
         setFailed(
           `Workflow run did not complete (status: ${runStatusNow}). Check the run details here: ${dispatchResp.data.html_url}`
         );
+      } else if (successConclusions.has(String(conclusion))) {
+        info(`\u{1F389} Workflow conclusion: ${conclusion}`);
       } else if (conclusion === "failure") {
         setFailed(`Workflow run failed. Check the run details here: ${dispatchResp.data.html_url}`);
       } else if (conclusion === "cancelled") {
         setFailed(`Workflow run was cancelled. Check the run details here: ${dispatchResp.data.html_url}`);
-      } else if (FAILED_CONCLUSIONS.has(String(conclusion))) {
+      } else {
         setFailed(
           `Workflow run concluded '${conclusion}'. Check the run details here: ${dispatchResp.data.html_url}`
         );
-      } else {
-        info(`\u{1F389} Workflow conclusion: ${conclusion}`);
       }
     }
   } catch (error2) {

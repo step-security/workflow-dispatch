@@ -14,9 +14,22 @@ import * as PackageJSON from '../package.json'
 
 const API_VERSION = '2026-03-10' // Latest API version as of March 2026, update as needed
 
-// Conclusions that unambiguously mean the run did not succeed. `neutral`,
-// `skipped` and `action_required` are left passing, as before.
-const FAILED_CONCLUSIONS = new Set(['failure', 'cancelled', 'timed_out', 'startup_failure', 'stale'])
+// Conclusions `sync-status` treats as a pass unless `success-conclusions` says
+// otherwise. The default keeps runs that deliberately end without doing work
+// passing, as they always have.
+const DEFAULT_SUCCESS_CONCLUSIONS = 'success,neutral,skipped,action_required'
+
+const KNOWN_CONCLUSIONS = new Set([
+  'success',
+  'failure',
+  'neutral',
+  'cancelled',
+  'skipped',
+  'timed_out',
+  'action_required',
+  'stale',
+  'startup_failure',
+])
 
 type Workflow = {
   id: number
@@ -34,6 +47,21 @@ async function run(): Promise<void> {
 
     // Required inputs
     const workflowRef = core.getInput('workflow')
+
+    // Read and validate before dispatching: a typo here changes the verdict, so
+    // failing now beats triggering a run we then refuse to judge.
+    const successConclusions = new Set(
+      (core.getInput('success-conclusions') || DEFAULT_SUCCESS_CONCLUSIONS)
+        .split(',')
+        .map((c) => c.trim().toLowerCase())
+        .filter((c) => c.length > 0),
+    )
+    const unknownConclusions = [...successConclusions].filter((c) => !KNOWN_CONCLUSIONS.has(c))
+    if (unknownConclusions.length > 0) {
+      throw new Error(
+        `Invalid 'success-conclusions' value(s): ${unknownConclusions.join(', ')}. Valid values: ${[...KNOWN_CONCLUSIONS].join(', ')}`,
+      )
+    }
 
     // Optional inputs, with defaults
     const token = core.getInput('token')
@@ -167,16 +195,16 @@ async function run(): Promise<void> {
         core.setFailed(
           `Workflow run did not complete (status: ${runStatusNow}). Check the run details here: ${dispatchResp.data.html_url}`,
         )
+      } else if (successConclusions.has(String(conclusion))) {
+        core.info(`🎉 Workflow conclusion: ${conclusion}`)
       } else if (conclusion === 'failure') {
         core.setFailed(`Workflow run failed. Check the run details here: ${dispatchResp.data.html_url}`)
       } else if (conclusion === 'cancelled') {
         core.setFailed(`Workflow run was cancelled. Check the run details here: ${dispatchResp.data.html_url}`)
-      } else if (FAILED_CONCLUSIONS.has(String(conclusion))) {
+      } else {
         core.setFailed(
           `Workflow run concluded '${conclusion}'. Check the run details here: ${dispatchResp.data.html_url}`,
         )
-      } else {
-        core.info(`🎉 Workflow conclusion: ${conclusion}`)
       }
     }
   } catch (error) {
