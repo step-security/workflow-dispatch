@@ -25,3 +25,45 @@ jobs:
         inputs: '{"message": "mushrooms in the morning"}'
         wait-for-completion: true
         wait-timeout-seconds: 26
+
+    # sync-status: true with a workflow that succeeds — action should pass
+    - name: sync-status succeeds when workflow succeeds
+      uses: ./
+      with:
+        workflow: echo-1.yaml
+        inputs: '{"message": "sync-status success test"}'
+        wait-for-completion: true
+        sync-status: true
+
+    # sync-status: true with a workflow that exits 1 — action should fail
+    - name: sync-status fails when workflow fails
+      id: sync_fail
+      uses: ./
+      continue-on-error: true
+      with:
+        workflow: echo-3.yaml
+        wait-for-completion: true
+        sync-status: true
+    - name: Verify sync-status step failed
+      if: steps.sync_fail.outcome != 'failure'
+      run: |
+        echo "Expected sync-status step to fail but it did not"
+        exit 1
+
+    # sync-status: true with a timeout shorter than the workflow runtime — action should fail
+    # echo-2 sleeps for 11 seconds; a 5-second timeout means the run is still in_progress
+    - name: sync-status fails when wait times out before completion
+      id: sync_timeout
+      uses: ./
+      continue-on-error: true
+      with:
+        workflow: echo-2.yaml
+        inputs: '{"message": "timeout test"}'
+        wait-for-completion: true
+        wait-timeout-seconds: 5
+        sync-status: true
+    - name: Verify timeout step failed
+      if: steps.sync_timeout.outcome != 'failure'
+      run: |
+        echo "Expected timeout step to fail but it did not"
+        exit 1
