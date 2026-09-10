@@ -40787,6 +40787,7 @@ var version = "1.3.2";
 
 // src/main.ts
 var API_VERSION = "2026-03-10";
+var FAILED_CONCLUSIONS = /* @__PURE__ */ new Set(["failure", "cancelled", "timed_out", "startup_failure", "stale"]);
 async function run() {
   info(`\u{1F3C3} Workflow Dispatch Action v${version}`);
   try {
@@ -40878,11 +40879,20 @@ Note: The workflow is still running but we have stopped waiting. You can check t
           headers: { "x-github-api-version": API_VERSION }
         }
       );
+      const runStatusNow = finalRunData.status;
       const conclusion = finalRunData.conclusion;
-      if (conclusion === "failure") {
+      if (runStatusNow !== "completed") {
+        setFailed(
+          `Workflow run did not complete (status: ${runStatusNow}). Check the run details here: ${dispatchResp.data.html_url}`
+        );
+      } else if (conclusion === "failure") {
         setFailed(`Workflow run failed. Check the run details here: ${dispatchResp.data.html_url}`);
       } else if (conclusion === "cancelled") {
         setFailed(`Workflow run was cancelled. Check the run details here: ${dispatchResp.data.html_url}`);
+      } else if (FAILED_CONCLUSIONS.has(String(conclusion))) {
+        setFailed(
+          `Workflow run concluded '${conclusion}'. Check the run details here: ${dispatchResp.data.html_url}`
+        );
       } else {
         info(`\u{1F389} Workflow conclusion: ${conclusion}`);
       }
