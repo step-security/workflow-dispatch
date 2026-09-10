@@ -14,6 +14,10 @@ import * as PackageJSON from '../package.json'
 
 const API_VERSION = '2026-03-10' // Latest API version as of March 2026, update as needed
 
+// Conclusions that unambiguously mean the run did not succeed. `neutral`,
+// `skipped` and `action_required` are left passing, as before.
+const FAILED_CONCLUSIONS = new Set(['failure', 'cancelled', 'timed_out', 'startup_failure', 'stale'])
+
 type Workflow = {
   id: number
   name: string
@@ -154,13 +158,23 @@ async function run(): Promise<void> {
           headers: { 'x-github-api-version': API_VERSION },
         },
       )
+      const runStatusNow = finalRunData.status
       const conclusion = finalRunData.conclusion
 
-      // Set this action to failed if the triggered workflow run failed or was cancelled
-      if (conclusion === 'failure') {
+      // An incomplete run has no conclusion yet, so passing here would report
+      // success for work still in flight (e.g. after the wait above timed out).
+      if (runStatusNow !== 'completed') {
+        core.setFailed(
+          `Workflow run did not complete (status: ${runStatusNow}). Check the run details here: ${dispatchResp.data.html_url}`,
+        )
+      } else if (conclusion === 'failure') {
         core.setFailed(`Workflow run failed. Check the run details here: ${dispatchResp.data.html_url}`)
       } else if (conclusion === 'cancelled') {
         core.setFailed(`Workflow run was cancelled. Check the run details here: ${dispatchResp.data.html_url}`)
+      } else if (FAILED_CONCLUSIONS.has(String(conclusion))) {
+        core.setFailed(
+          `Workflow run concluded '${conclusion}'. Check the run details here: ${dispatchResp.data.html_url}`,
+        )
       } else {
         core.info(`🎉 Workflow conclusion: ${conclusion}`)
       }
