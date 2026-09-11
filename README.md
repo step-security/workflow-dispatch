@@ -72,7 +72,26 @@ This option is also left for backwards compatibility with older versions where t
 
 ### `sync-status`
 
-**Optional.** Set to `'true'` to sync the status of this action with the triggered workflow run. If the triggered workflow run fails or is cancelled, this action will also be set to failed. This only applies if `wait-for-completion` is set to `true`. Default is `false`.
+**Optional.** Set to `'true'` to sync the status of this action with the triggered workflow run. By default, this action will be set to failed if the triggered workflow run concludes with `failure` or `cancelled`. To customise which conclusions are treated as a pass, see [`success-conclusions`](#success-conclusions). Also fails if the triggered workflow does not reach a completed state before `wait-timeout-seconds` expires. This only applies if `wait-for-completion` is set to `true`. Default is `false`.
+
+### `success-conclusions`
+
+**Optional.** Comma-separated list of run conclusions that `sync-status` should treat as a pass. Any conclusion not in this list — and any run that never reaches `completed` — will cause this action to fail. This only applies when both `sync-status` and `wait-for-completion` are set to `true`. Default is empty (unset).
+
+**Valid values:** `success`, `failure`, `neutral`, `cancelled`, `skipped`, `timed_out`, `action_required`, `stale`, `startup_failure`. An unrecognised value fails the action before the workflow is dispatched.
+
+**When omitted** (default), legacy conclusion handling is preserved: only `failure` and `cancelled` cause this action to fail; every other completed conclusion is treated as a pass.
+
+**When set**, the input acts as an explicit allowlist. Use this when the triggered run is a gate (a required status check, a deploy blocker) and only a genuine pass should go green:
+
+```yaml
+- uses: step-security/workflow-dispatch@v1
+  with:
+    workflow: e2e.yml
+    wait-for-completion: 'true'
+    sync-status: 'true'
+    success-conclusions: success   # only a genuine pass goes green
+```
 
 ## Action Outputs
 
