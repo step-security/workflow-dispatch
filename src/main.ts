@@ -14,6 +14,18 @@ import * as PackageJSON from '../package.json'
 
 const API_VERSION = '2026-03-10' // Latest API version as of March 2026, update as needed
 
+const KNOWN_CONCLUSIONS = new Set([
+  'success',
+  'failure',
+  'neutral',
+  'cancelled',
+  'skipped',
+  'timed_out',
+  'action_required',
+  'stale',
+  'startup_failure',
+])
+
 type Workflow = {
   id: number
   name: string
@@ -97,6 +109,27 @@ async function run(): Promise<void> {
     // Handle wait for completion
     const waitForCompletion = core.getInput('wait-for-completion') === 'true'
     const syncStatus = core.getInput('sync-status') === 'true'
+
+    // Read and validate success-conclusions before dispatching — a typo changes
+    // the verdict, so failing now beats triggering a run we then refuse to judge.
+    // If not set, successConclusions is null and old behaviour is preserved exactly.
+    const configuredSuccessConclusions = core.getInput('success-conclusions')
+    const successConclusions = configuredSuccessConclusions
+      ? new Set(
+          configuredSuccessConclusions
+            .split(',')
+            .map((c) => c.trim().toLowerCase())
+            .filter(Boolean),
+        )
+      : null
+    if (successConclusions) {
+      const unknownConclusions = [...successConclusions].filter((c) => !KNOWN_CONCLUSIONS.has(c))
+      if (unknownConclusions.length > 0) {
+        throw new Error(
+          `Invalid 'success-conclusions' value(s): ${unknownConclusions.join(', ')}. Valid values: ${[...KNOWN_CONCLUSIONS].join(', ')}`,
+        )
+      }
+    }
     const timeoutSeconds = parseInt(core.getInput('wait-timeout-seconds') || '900', 10) // Default to 15 minutes
     const waitIntervalSeconds = parseInt(core.getInput('wait-interval-seconds') || '5', 10) // Default to 5 seconds
     let runStatus = 'in_progress'
@@ -154,15 +187,33 @@ async function run(): Promise<void> {
           headers: { 'x-github-api-version': API_VERSION },
         },
       )
+      const runStatusNow = finalRunData.status
       const conclusion = finalRunData.conclusion
 
-      // Set this action to failed if the triggered workflow run failed or was cancelled
-      if (conclusion === 'failure') {
-        core.setFailed(`Workflow run failed. Check the run details here: ${dispatchResp.data.html_url}`)
-      } else if (conclusion === 'cancelled') {
-        core.setFailed(`Workflow run was cancelled. Check the run details here: ${dispatchResp.data.html_url}`)
+      // An incomplete run has no conclusion yet, so passing here would report
+      // success for work still in flight (e.g. after the wait above timed out).
+      if (runStatusNow !== 'completed') {
+        core.setFailed(
+          `Workflow run did not complete (status: ${runStatusNow}). Check the run details here: ${dispatchResp.data.html_url}`,
+        )
+      } else if (successConclusions) {
+        // New configurable behaviour — only when success-conclusions is explicitly set
+        if (conclusion && successConclusions.has(conclusion)) {
+          core.info(`🎉 Workflow conclusion: ${conclusion}`)
+        } else {
+          core.setFailed(
+            `Workflow run concluded '${conclusion}'. Check the run details here: ${dispatchResp.data.html_url}`,
+          )
+        }
       } else {
-        core.info(`🎉 Workflow conclusion: ${conclusion}`)
+        // Old behaviour preserved exactly — only failure and cancelled fail
+        if (conclusion === 'failure') {
+          core.setFailed(`Workflow run failed. Check the run details here: ${dispatchResp.data.html_url}`)
+        } else if (conclusion === 'cancelled') {
+          core.setFailed(`Workflow run was cancelled. Check the run details here: ${dispatchResp.data.html_url}`)
+        } else {
+          core.info(`🎉 Workflow conclusion: ${conclusion}`)
+        }
       }
     }
   } catch (error) {
