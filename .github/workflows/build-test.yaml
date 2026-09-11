@@ -284,3 +284,158 @@ jobs:
           wait-for-completion: true
           wait-timeout-seconds: 1
           ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+
+  # ===========================================================================
+  # success-conclusions input tests
+  # ===========================================================================
+  test-sync-status-strict-success:
+    name: 'Test: Sync status, strict, run succeeds'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40 # v2.19.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      # success-conclusions: success. Run concludes success → in list → passes.
+      - name: Dispatch echo-1, success-conclusions=success — should pass
+        uses: ./
+        with:
+          workflow: echo-1.yaml
+          inputs: '{"message": "strict success test"}'
+          wait-for-completion: true
+          sync-status: true
+          success-conclusions: success
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+
+  test-sync-status-strict-failure:
+    name: 'Test: Sync status, strict, run fails'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40 # v2.19.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      # success-conclusions: success. Run concludes failure → not in list → fails.
+      - name: Dispatch echo-3 (exits 1), success-conclusions=success — should fail
+        id: dispatch
+        continue-on-error: true
+        uses: ./
+        with:
+          workflow: echo-3.yaml
+          wait-for-completion: true
+          sync-status: true
+          success-conclusions: success
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+
+      - name: Assert action failed
+        run: |
+          if [[ "${{ steps.dispatch.outcome }}" != "failure" ]]; then
+            echo "FAIL: Expected action to fail when run fails with strict success-conclusions"
+            exit 1
+          fi
+          echo "PASS: Action correctly failed"
+
+  test-sync-status-invalid-conclusions:
+    name: 'Test: Sync status, typo in success-conclusions'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40 # v2.19.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      # Typo "succes" is not a known conclusion. Action must fail BEFORE dispatching.
+      - name: Dispatch with typo in success-conclusions — should fail before dispatch
+        id: dispatch
+        continue-on-error: true
+        uses: ./
+        with:
+          workflow: echo-1.yaml
+          inputs: '{"message": "typo test"}'
+          wait-for-completion: true
+          sync-status: true
+          success-conclusions: succes
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+
+      - name: Assert action failed before dispatch
+        run: |
+          if [[ "${{ steps.dispatch.outcome }}" != "failure" ]]; then
+            echo "FAIL: Expected action to fail on invalid success-conclusions value"
+            exit 1
+          fi
+          echo "PASS: Action correctly rejected invalid conclusion"
+
+  # ===========================================================================
+  # Test: comma-separated parser — multiple values, whitespace, case
+  # ===========================================================================
+  test-sync-status-multi-conclusions:
+    name: 'Test: Sync status, multiple success-conclusions'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40 # v2.19.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      # Verifies split(','), trim(), and toLowerCase() all work together.
+      # Run concludes success — "SUCCESS" after lowercase normalisation is in the list.
+      - name: Dispatch echo-1, multi-value conclusions with whitespace and mixed case
+        uses: ./
+        with:
+          workflow: echo-1.yaml
+          inputs: '{"message": "multi conclusions test"}'
+          wait-for-completion: true
+          sync-status: true
+          success-conclusions: ' SUCCESS , neutral '
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+
+  # ===========================================================================
+  # Test: poll timeout — null conclusion always fails (unconditional fix)
+  # ===========================================================================
+  test-sync-status-timeout-no-input:
+    name: 'Test: Sync status, timeout, no input — must fail'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40 # v2.19.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      # echo-2 sleeps 11s. 5-second timeout fires while run is still in_progress.
+      # conclusion = null. Without input, old code would pass — new fix must fail.
+      - name: Dispatch echo-2, 5s timeout, no success-conclusions — should fail
+        id: dispatch
+        continue-on-error: true
+        uses: ./
+        with:
+          workflow: echo-2.yaml
+          wait-for-completion: true
+          wait-timeout-seconds: 5
+          sync-status: true
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+
+      - name: Assert action failed
+        run: |
+          if [[ "${{ steps.dispatch.outcome }}" != "failure" ]]; then
+            echo "FAIL: Expected action to fail when poll times out (null conclusion fix)"
+            exit 1
+          fi
+          echo "PASS: Action correctly failed on poll timeout"
+
