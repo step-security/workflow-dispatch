@@ -42,6 +42,33 @@ async function run(): Promise<void> {
 
     // Required inputs
     const workflowRef = core.getInput('workflow')
+    const waitForCompletion = core.getInput('wait-for-completion') === 'true'
+    const syncStatus = core.getInput('sync-status') === 'true'
+
+    // Read and validate success-conclusions before dispatching the workflow —
+    // a typo changes the verdict, so failing here beats triggering a run we
+    // then refuse to judge. Only parsed when sync-status is true; when
+    // sync-status is false the input is documented as ignored, so we skip it.
+    // If not set, successConclusions is null and legacy conclusion handling
+    // is preserved (failure/cancelled fail, other completed conclusions pass).
+    const configuredSuccessConclusions = core.getInput('success-conclusions')
+    const successConclusions =
+      syncStatus && configuredSuccessConclusions
+        ? new Set(
+            configuredSuccessConclusions
+              .split(',')
+              .map((c) => c.trim().toLowerCase())
+              .filter(Boolean),
+          )
+        : null
+    if (successConclusions) {
+      const unknownConclusions = [...successConclusions].filter((c) => !KNOWN_CONCLUSIONS.has(c))
+      if (unknownConclusions.length > 0) {
+        throw new Error(
+          `Invalid 'success-conclusions' value(s): ${unknownConclusions.join(', ')}. Valid values: ${[...KNOWN_CONCLUSIONS].join(', ')}`,
+        )
+      }
+    }
 
     // Optional inputs, with defaults
     const token = core.getInput('token')
@@ -107,29 +134,6 @@ async function run(): Promise<void> {
     core.info(`🌐 Run URL: ${dispatchResp.data.html_url}`)
 
     // Handle wait for completion
-    const waitForCompletion = core.getInput('wait-for-completion') === 'true'
-    const syncStatus = core.getInput('sync-status') === 'true'
-
-    // Read and validate success-conclusions before dispatching — a typo changes
-    // the verdict, so failing now beats triggering a run we then refuse to judge.
-    // If not set, successConclusions is null and old behaviour is preserved exactly.
-    const configuredSuccessConclusions = core.getInput('success-conclusions')
-    const successConclusions = configuredSuccessConclusions
-      ? new Set(
-          configuredSuccessConclusions
-            .split(',')
-            .map((c) => c.trim().toLowerCase())
-            .filter(Boolean),
-        )
-      : null
-    if (successConclusions) {
-      const unknownConclusions = [...successConclusions].filter((c) => !KNOWN_CONCLUSIONS.has(c))
-      if (unknownConclusions.length > 0) {
-        throw new Error(
-          `Invalid 'success-conclusions' value(s): ${unknownConclusions.join(', ')}. Valid values: ${[...KNOWN_CONCLUSIONS].join(', ')}`,
-        )
-      }
-    }
     const timeoutSeconds = parseInt(core.getInput('wait-timeout-seconds') || '900', 10) // Default to 15 minutes
     const waitIntervalSeconds = parseInt(core.getInput('wait-interval-seconds') || '5', 10) // Default to 5 seconds
     let runStatus = 'in_progress'

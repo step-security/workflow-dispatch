@@ -40803,6 +40803,20 @@ async function run() {
   try {
     await validateSubscription();
     const workflowRef = getInput("workflow");
+    const waitForCompletion = getInput("wait-for-completion") === "true";
+    const syncStatus = getInput("sync-status") === "true";
+    const configuredSuccessConclusions = getInput("success-conclusions");
+    const successConclusions = syncStatus && configuredSuccessConclusions ? new Set(
+      configuredSuccessConclusions.split(",").map((c) => c.trim().toLowerCase()).filter(Boolean)
+    ) : null;
+    if (successConclusions) {
+      const unknownConclusions = [...successConclusions].filter((c) => !KNOWN_CONCLUSIONS.has(c));
+      if (unknownConclusions.length > 0) {
+        throw new Error(
+          `Invalid 'success-conclusions' value(s): ${unknownConclusions.join(", ")}. Valid values: ${[...KNOWN_CONCLUSIONS].join(", ")}`
+        );
+      }
+    }
     const token = getInput("token");
     const ref = getInput("ref");
     const [owner, repo] = getInput("repo") ? getInput("repo").split("/") : [context2.repo.owner, context2.repo.repo];
@@ -40843,20 +40857,6 @@ async function run() {
     );
     info(`\u{1F3C6} API response status: ${dispatchResp.status}`);
     info(`\u{1F310} Run URL: ${dispatchResp.data.html_url}`);
-    const waitForCompletion = getInput("wait-for-completion") === "true";
-    const syncStatus = getInput("sync-status") === "true";
-    const configuredSuccessConclusions = getInput("success-conclusions");
-    const successConclusions = configuredSuccessConclusions ? new Set(
-      configuredSuccessConclusions.split(",").map((c) => c.trim().toLowerCase()).filter(Boolean)
-    ) : null;
-    if (successConclusions) {
-      const unknownConclusions = [...successConclusions].filter((c) => !KNOWN_CONCLUSIONS.has(c));
-      if (unknownConclusions.length > 0) {
-        throw new Error(
-          `Invalid 'success-conclusions' value(s): ${unknownConclusions.join(", ")}. Valid values: ${[...KNOWN_CONCLUSIONS].join(", ")}`
-        );
-      }
-    }
     const timeoutSeconds = parseInt(getInput("wait-timeout-seconds") || "900", 10);
     const waitIntervalSeconds = parseInt(getInput("wait-interval-seconds") || "5", 10);
     let runStatus = "in_progress";
